@@ -1303,8 +1303,8 @@ async def c_play(channel):
             LOGGER.warning(f"No files found in {chat.title}, Change filter settings if required. Current filters are {Config.FILTERS}")
             if Config.CPLAY:
                 Config.CPLAY=False
-                Config.STREAM_URL="https://www.youtube.com/watch?v=zcrUCvBD16k"
-                LOGGER.warning("Seems like cplay is set as STARTUP_STREAM, Since nothing found on {chat.title}, switching to 24 News as startup stream.")
+                Config.STREAM_URL="https://www.youtube.com/watch?v=rOwQp0wlEzM"
+                LOGGER.warning("Seems like cplay is set as STARTUP_STREAM, Since nothing found on {chat.title}, switching to Joget Mantap as startup stream.")
                 Config.STREAM_SETUP=False
                 await sync_to_db()
                 return False, f"No files found on given channel, Please check your filters.\nCurrent filters are {Config.FILTERS}"
@@ -1321,8 +1321,8 @@ async def c_play(channel):
         LOGGER.error(f"Errors occured while fetching songs from given channel - {e}", exc_info=True)
         if Config.CPLAY:
             Config.CPLAY=False
-            Config.STREAM_URL="https://www.youtube.com/watch?v=zcrUCvBD16k"
-            LOGGER.warning("Seems like cplay is set as STARTUP_STREAM, and errors occured while getting playlist from given chat. Switching to 24 news as default stream.")
+            Config.STREAM_URL="https://www.youtube.com/watch?v=rOwQp0wlEzM"
+            LOGGER.warning("Seems like cplay is set as STARTUP_STREAM, and errors occured while getting playlist from given chat. Switching to Joget Mantap as default stream.")
             Config.STREAM_SETUP=False
         await sync_to_db()
         return False, f"Errors occured while getting files - {e}"
