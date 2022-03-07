@@ -71,14 +71,13 @@ class Downloader():
     async def pyro_dl(self, file_id):
         file_id_obj = FileId.decode(file_id)
         file_type = file_id_obj.file_type
-        mime_type = ""
-        date = 0
         file_name = ""
 
         directory, file_name = os.path.split(file_name)
         if not os.path.isabs(file_name):
             directory = self.client.PARENT_DIR / (directory or DEFAULT_DOWNLOAD_DIR)
         if not file_name:
+            mime_type = ""
             guessed_extension = self.client.guess_extension(mime_type)
 
             if file_type in PHOTO_TYPES:
@@ -96,6 +95,7 @@ class Downloader():
             else:
                 extension = ".unknown"
 
+            date = 0
             file_name = "{}_{}_{}{}".format(
                 FileType(file_id_obj.file_type).name.lower(),
                 datetime.fromtimestamp(date or time.time()).strftime("%Y-%m-%d_%H-%M-%S"),
@@ -180,16 +180,15 @@ class Downloader():
                     user_id=file_id.chat_id,
                     access_hash=file_id.chat_access_hash
                 )
+            elif file_id.chat_access_hash == 0:
+                peer = raw.types.InputPeerChat(
+                    chat_id=-file_id.chat_id
+                )
             else:
-                if file_id.chat_access_hash == 0:
-                    peer = raw.types.InputPeerChat(
-                        chat_id=-file_id.chat_id
-                    )
-                else:
-                    peer = raw.types.InputPeerChannel(
-                        channel_id=utils.get_channel_id(file_id.chat_id),
-                        access_hash=file_id.chat_access_hash
-                    )
+                peer = raw.types.InputPeerChannel(
+                    channel_id=utils.get_channel_id(file_id.chat_id),
+                    access_hash=file_id.chat_access_hash
+                )
 
             location = raw.types.InputPeerPhotoFileLocation(
                 peer=peer,
