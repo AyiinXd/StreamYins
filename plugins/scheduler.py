@@ -67,19 +67,19 @@ async def schedule_vc(bot, message):
         if message.reply_to_message and message.reply_to_message.video:
             await msg.edit("⚡️ **Checking Telegram Media...**")
             type='video'
-            m_video = message.reply_to_message.video       
+            m_video = message.reply_to_message.video
         elif message.reply_to_message and message.reply_to_message.document:
             await msg.edit("⚡️ **Checking Telegram Media...**")
             m_video = message.reply_to_message.document
             type='video'
-            if not "video" in m_video.mime_type:
+            if "video" not in m_video.mime_type:
                 return await msg.edit("The given file is invalid")
         elif message.reply_to_message and message.reply_to_message.audio:
             #if not Config.IS_VIDEO:
                 #return await message.reply("Play from audio file is available only if Video Mode if turned off.\nUse /settings to configure ypur player.")
             await msg.edit("⚡️ **Checking Telegram Media...**")
             type='audio'
-            m_video = message.reply_to_message.audio       
+            m_video = message.reply_to_message.audio
         else:
             if message.reply_to_message and message.reply_to_message.text:
                 query=message.reply_to_message.text
@@ -110,7 +110,7 @@ async def schedule_vc(bot, message):
             else:
                 type="query"
                 ysearch=query
-        if not message.from_user is None:
+        if message.from_user is not None:
             user=f"[{message.from_user.first_name}](tg://user?id={message.from_user.id}) - (Scheduled)"
             user_id = message.from_user.id
         else:
@@ -118,39 +118,37 @@ async def schedule_vc(bot, message):
             user_id = "anonymous_admin"
         now = datetime.now()
         nyav = now.strftime("%d-%m-%Y-%H:%M:%S")
-        if type in ["video", "audio"]:
-            if type == "audio":
-                if m_video.title is None:
-                    if m_video.file_name is None:
-                        title_ = "Music"
-                    else:
-                        title_ = m_video.file_name
-                else:
-                    title_ = m_video.title
-                if m_video.performer is not None:
-                    title = f"{m_video.performer} - {title_}"
-                else:
-                    title=title_
-                unique = f"{nyav}_{m_video.file_size}_audio"
-            else:
-                title=m_video.file_name
-                unique = f"{nyav}_{m_video.file_size}_video"
-                if Config.PTN:
-                    ny = parse(title)
-                    title_ = ny.get("title")
-                    if title_:
-                        title = title_
+        if type == "video":
+            title=m_video.file_name
+            unique = f"{nyav}_{m_video.file_size}_video"
+            if Config.PTN:
+                ny = parse(title)
+                if title_ := ny.get("title"):
+                    title = title_
             if title is None:
                 title = 'Music'
             data={'1':title, '2':m_video.file_id, '3':"telegram", '4':user, '5':unique}
             sid=f"{message.chat.id}_{msg.message_id}"
             Config.SCHEDULED_STREAM[sid] = data
             await sync_to_db()
-        elif type in ["youtube", "query", "ytdl_s"]:
-            if type=="youtube":
-                await msg.edit("⚡️ **Fetching Video From YouTube...**")
-                url=yturl
-            elif type=="query":
+        elif type == "audio":
+            if m_video.title is None:
+                title_ = "Music" if m_video.file_name is None else m_video.file_name
+            else:
+                title_ = m_video.title
+            if m_video.performer is not None:
+                title = f"{m_video.performer} - {title_}"
+            else:
+                title=title_
+            unique = f"{nyav}_{m_video.file_size}_audio"
+            if title is None:
+                title = 'Music'
+            data={'1':title, '2':m_video.file_id, '3':"telegram", '4':user, '5':unique}
+            sid=f"{message.chat.id}_{msg.message_id}"
+            Config.SCHEDULED_STREAM[sid] = data
+            await sync_to_db()
+        elif type in {"youtube", "query", "ytdl_s"}:
+            if type == "query":
                 try:
                     await msg.edit("⚡️ **Fetching Video From YouTube...**")
                     ytquery=ysearch
@@ -164,6 +162,9 @@ async def schedule_vc(bot, message):
                     LOGGER.error(str(e), exc_info=True)
                     await delete_messages([message, msg])
                     return
+            elif type == "youtube":
+                await msg.edit("⚡️ **Fetching Video From YouTube...**")
+                url=yturl
             elif type == "ytdl_s":
                 url=url
             else:
@@ -207,10 +208,15 @@ async def schedule_vc(bot, message):
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
-                            InlineKeyboardButton(f"Schedule", url=f"https://telegram.dog/{Config.BOT_USERNAME}?start=sch_{sid}"),
+                            InlineKeyboardButton(
+                                "Schedule",
+                                url=f"https://telegram.dog/{Config.BOT_USERNAME}?start=sch_{sid}",
+                            )
                         ]
                     ]
-                ),)
+                ),
+            )
+
             await delete_messages([message, msg])
             return
         today = datetime.now(IST)
@@ -220,12 +226,21 @@ async def schedule_vc(bot, message):
         year = today.year
         month = today.month
         m=obj.monthdayscalendar(year, month)
-        button=[]
-        button.append([InlineKeyboardButton(text=f"{str(smonth)}  {str(year)}",callback_data=f"sch_month_choose_none_none")])
+        button = [
+            [
+                InlineKeyboardButton(
+                    text=f"{str(smonth)}  {str(year)}",
+                    callback_data="sch_month_choose_none_none",
+                )
+            ]
+        ]
+
         days=["Mon", "Tues", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        f=[]
-        for day in days:
-            f.append(InlineKeyboardButton(text=f"{day}",callback_data=f"day_info_none"))
+        f = [
+            InlineKeyboardButton(text=f"{day}", callback_data="day_info_none")
+            for day in days
+        ]
+
         button.append(f)
         for one in m:
             f=[]

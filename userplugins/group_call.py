@@ -54,10 +54,7 @@ from utils import (
 
 DUMBED=[]
 async def dumb_it(_, client, message):
-    if Config.RECORDING_DUMP and Config.LISTEN:
-        return True
-    else:
-        return False
+    return bool(Config.RECORDING_DUMP and Config.LISTEN)
 rec_filter=filters.create(dumb_it)
 
 
@@ -69,14 +66,14 @@ async def dumb_to_log(client, message):
     if message.audio and message.audio.file_name == "record.ogg":
         await message.copy(int(Config.RECORDING_DUMP))
         DUMBED.append("audio")
-    if Config.IS_VIDEO_RECORD:
-        if len(DUMBED) == 2:
-            DUMBED.clear()
-            Config.LISTEN=False
-    else:
-        if len(DUMBED) == 1:
-            DUMBED.clear()
-            Config.LISTEN=False
+    if (
+        Config.IS_VIDEO_RECORD
+        and len(DUMBED) == 2
+        or not Config.IS_VIDEO_RECORD
+        and len(DUMBED) == 1
+    ):
+        DUMBED.clear()
+        Config.LISTEN=False
 
     
 @Client.on_message(filters.service & filters.chat(Config.CHAT))
@@ -116,8 +113,6 @@ async def service_msg(client, message):
             Config.WAS_RECORDING=True
             await stop_recording()
         await sync_to_db()
-    else:
-        pass
 
 @Client.on_raw_update()
 async def handle_raw_updates(client: Client, update: Update, user: dict, chat: dict):
@@ -175,10 +170,7 @@ async def handle_raw_updates(client: Client, update: Update, user: dict, chat: d
                 await stop_recording()
                 LOGGER.warning("Recording was ended by user, hence stopping the schedules.")
                 return
-            if call.schedule_date:
-                Config.HAS_SCHEDULE=True
-            else:
-                Config.HAS_SCHEDULE=False
+            Config.HAS_SCHEDULE = bool(call.schedule_date)
         await sync_to_db()
  
 @group_call.on_raw_update()
@@ -188,8 +180,7 @@ async def handler(client: PyTgCalls, update: Update):
         if Config.EDIT_TITLE:
             await edit_title()
         who=await group_call.get_participants(Config.CHAT)
-        you=list(filter(lambda k:k.user_id == Config.USER_ID, who))
-        if you:
+        if you := list(filter(lambda k: k.user_id == Config.USER_ID, who)):
             for me in you:
                 if me.volume:
                     Config.VOLUME=round(int(me.volume))
@@ -199,11 +190,9 @@ async def handler(client: PyTgCalls, update: Update):
         Config.DUR['PAUSE'] = time.time()
         Config.PAUSE=True
     elif isinstance(update, ResumedStream):
-        pause=Config.DUR.get('PAUSE')
-        if pause:
+        if pause := Config.DUR.get('PAUSE'):
             diff = time.time() - pause
-            start=Config.DUR.get('TIME')
-            if start:
+            if start := Config.DUR.get('TIME'):
                 Config.DUR['TIME']=start+diff
         Config.PAUSE=False
     elif isinstance(update, MutedStream):
@@ -215,31 +204,29 @@ async def handler(client: PyTgCalls, update: Update):
 
 @group_call.on_stream_end()
 async def handler(client: PyTgCalls, update: Update):
-    if isinstance(update, StreamAudioEnded) or isinstance(update, StreamVideoEnded):
-        if not Config.STREAM_END.get("STATUS"):
-            Config.STREAM_END["STATUS"]=str(update)
-            if Config.STREAM_LINK and len(Config.playlist) == 0:
-                if Config.IS_LOOP:
-                    await stream_from_link(Config.STREAM_LINK)
-                else:
-                    await leave_call()
-            elif not Config.playlist:
-                if Config.IS_LOOP:
-                    await start_stream()
-                else:
-                    await leave_call()
+    if not isinstance(update, StreamAudioEnded) and not isinstance(
+        update, StreamVideoEnded
+    ):
+        return
+    if not Config.STREAM_END.get("STATUS"):
+        Config.STREAM_END["STATUS"]=str(update)
+        if Config.STREAM_LINK and len(Config.playlist) == 0:
+            if Config.IS_LOOP:
+                await stream_from_link(Config.STREAM_LINK)
             else:
-                await skip()          
-            await sleep(15) #wait for max 15 sec
-            try:
-                del Config.STREAM_END["STATUS"]
-            except:
-                pass
+                await leave_call()
+        elif not Config.playlist:
+            if Config.IS_LOOP:
+                await start_stream()
+            else:
+                await leave_call()
         else:
-            try:
-                del Config.STREAM_END["STATUS"]
-            except:
-                pass
+            await skip()
+        await sleep(15) #wait for max 15 sec
+    try:
+        del Config.STREAM_END["STATUS"]
+    except:
+        pass
 
        
 
